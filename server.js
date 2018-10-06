@@ -5,6 +5,7 @@ const path = require('path');
 const cors = require('cors');
 
 const teams = require('./routes/api/teams');
+const user = require('./routes/api/user');
 
 const app = express();
 
@@ -22,6 +23,7 @@ mongoose
   .catch(err => console.log(err));
 
 // Use Routes
+app.use('/api/user', user);
 app.use('/api/teams', teams);
 
 const port = process.env.PORT || 5000;
