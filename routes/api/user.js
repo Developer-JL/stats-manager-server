@@ -10,8 +10,8 @@ const User = require("../../models/user");
 router.post("/signup", (req, res) => {
   User.find({ email: req.body.email })
     .exec()
-    .then(user => {
-      if (user.length >= 1) {
+    .then(users => {
+      if (users.length >= 1) {
         return res.status(409).json({
           message: "This email is already registered!"
         });
@@ -30,8 +30,7 @@ router.post("/signup", (req, res) => {
             });
             user
               .save()
-              .then(result => {
-                console.log(result);
+              .then(() => {
                 res.status(201).json({
                   message: "New user created!"
                 });
@@ -53,21 +52,21 @@ router.post("/signup", (req, res) => {
 router.post("/signin", (req, res) => {
   User.find({ email: req.body.email })
     .exec()
-    .then(user => {
-      if (user.length < 1) {
+    .then(users => {
+      if (users.length < 1) {
         return res.status(401).json({
           message: "Incorrect Login Details!"
         });
       }
-      bcrypt.compare(req.body.password, user[0].password, (err, result) => {
+      bcrypt.compare(req.body.password, users[0].password, (err, found) => {
         if (err) {
           return res.status(401).json({
             message: "Incorrect Login Details!"
           });
         }
-        if (result) {
+        if (found) {
           return res.status(200).json({
-            userId: user[0]._id,
+            userId: users[0]._id,
             message: "Login successful!"
           });
         }
@@ -107,8 +106,7 @@ router.put("/", (req, res) => {
     .exec()
     .then(foundUser => {
       foundUser.teams = req.body.teams;
-      foundUser.save().then(result => {
-        console.log(result);
+      foundUser.save().then(() => {
         res.status(201).json({
           message: " User updated!"
         });
