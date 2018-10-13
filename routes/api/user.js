@@ -2,17 +2,18 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 
 const User = require("../../models/user");
 
-router.post("/signup", (req, res, next) => {
+// @route   POST api/user
+// @desc    Sign up a new user
+router.post("/signup", (req, res) => {
   User.find({ email: req.body.email })
     .exec()
     .then(user => {
       if (user.length >= 1) {
         return res.status(409).json({
-          message: "Mail exists"
+          message: "This email is already registered!"
         });
       } else {
         bcrypt.hash(req.body.password, 10, (err, hash) => {
@@ -24,14 +25,15 @@ router.post("/signup", (req, res, next) => {
             const user = new User({
               _id: new mongoose.Types.ObjectId(),
               email: req.body.email,
-              password: hash
+              password: hash,
+              teams: req.body.teams
             });
             user
               .save()
               .then(result => {
                 console.log(result);
                 res.status(201).json({
-                  message: "User created"
+                  message: "New user created!"
                 });
               })
               .catch(err => {
@@ -46,39 +48,31 @@ router.post("/signup", (req, res, next) => {
     });
 });
 
-router.post("/login", (req, res, next) => {
+// @route   POST api/user
+// @desc    Sign in an existing user
+router.post("/signin", (req, res) => {
   User.find({ email: req.body.email })
     .exec()
     .then(user => {
       if (user.length < 1) {
         return res.status(401).json({
-          message: "Auth failed"
+          message: "Incorrect Login Details!"
         });
       }
       bcrypt.compare(req.body.password, user[0].password, (err, result) => {
         if (err) {
           return res.status(401).json({
-            message: "Auth failed"
+            message: "Incorrect Login Details!"
           });
         }
         if (result) {
-          const token = jwt.sign(
-            {
-              email: user[0].email,
-              userId: user[0]._id
-            },
-            process.env.JWT_KEY,
-            {
-              expiresIn: "1h"
-            }
-          );
           return res.status(200).json({
-            message: "Auth successful",
-            token: token
+            userId: user[0]._id,
+            message: "Login successful!"
           });
         }
         res.status(401).json({
-          message: "Auth failed"
+          message: "Incorrect Login Details!"
         });
       });
     })
@@ -90,13 +84,41 @@ router.post("/login", (req, res, next) => {
     });
 });
 
-router.delete("/:userId", (req, res, next) => {
-  User.remove({ _id: req.params.userId })
+// @route   GET api/user/userId
+// @desc    Get an existing user by user id
+router.get("/:userId", (req, res) => {
+  User.findById(req.params.userId)
     .exec()
-    .then(result => {
-      res.status(200).json({
-        message: "User deleted"
+    .then(foundUser => {
+      res.status(200).json(foundUser);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({
+        error: err
       });
+    });
+});
+
+// @route   PUT api/user
+// @desc    Update an existing user
+router.put("/", (req, res) => {
+  User.findById(req.body._id)
+    .exec()
+    .then(foundUser => {
+      foundUser.teams = req.body.teams;
+      foundUser.save().then(result => {
+        console.log(result);
+        res.status(201).json({
+          message: " User updated!"
+        });
+      })
+        .catch(err => {
+          console.log(err);
+          res.status(500).json({
+            error: err
+          });
+        });
     })
     .catch(err => {
       console.log(err);
